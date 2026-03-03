@@ -61,6 +61,9 @@ In the Vercel dashboard → **Settings → Environment Variables**, add:
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect Cloud project ID |
 | `SC_VERCEL_TOKEN` | Vercel API token (for domain management) |
 | `SC_VERCEL_PROJECT_ID` | Your Vercel project ID |
+| `STRIPE_SECRET_KEY` | Stripe secret key (`sk_live_` or `sk_test_`) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_`) |
+| `STRIPE_PRICE_ID` | Stripe Price ID for Pro product (`price_`) |
 
 > Copy `.env.example` → `.env.local` for local dev.
 
@@ -138,14 +141,22 @@ vercel.json                    # Vercel config (headers, crons, region)
 
 ## Payment Model
 
-This project uses a **one-time payment** model:
+This project uses **Stripe Checkout** with a **one-time payment** model:
 
 - Free users get full profile card features (NFTs, tokens, activity, socials)
 - Pro upgrade unlocks custom domain binding
-- `POST /api/webhook` receives `payment.success` event → permanently sets `is_pro = TRUE`
+- Click "Upgrade to Pro" in Settings → redirected to Stripe Checkout
+- Stripe webhook (`checkout.session.completed`) → permanently sets `is_pro = TRUE`
 - No subscriptions, no recurring billing, no downgrade logic
 
-Integrate with any payment provider (Stripe, Coinbase Commerce, etc.) by having it call the webhook endpoint.
+### Stripe Setup
+
+1. Create a product in [Stripe Dashboard → Products](https://dashboard.stripe.com/products) with a one-time price
+2. Copy the Price ID (`price_xxx`) → set as `STRIPE_PRICE_ID`
+3. Add webhook endpoint in [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks):
+   - URL: `https://your-domain.com/api/webhook`
+   - Events: `checkout.session.completed`
+4. Copy the webhook signing secret → set as `STRIPE_WEBHOOK_SECRET`
 
 ---
 

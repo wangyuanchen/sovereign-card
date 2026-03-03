@@ -1,8 +1,8 @@
 "use client";
 
 import { useAccount, useSignMessage } from "wagmi";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import ConnectWallet from "@/components/ConnectWallet";
 
 interface UserProfile {
@@ -21,10 +21,26 @@ interface DomainEntry {
   verified: boolean;
 }
 
-export default function SettingsPage() {
+// Wrapper with Suspense boundary for useSearchParams
+export default function SettingsPageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-grid">
+          <div className="text-text-secondary">Loading settings...</div>
+        </main>
+      }
+    >
+      <SettingsPage />
+    </Suspense>
+  );
+}
+
+function SettingsPage() {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   /**
    * Construct the same deterministic message that the server expects.
@@ -38,11 +54,34 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Upgrade / checkout state
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeSuccess, setUpgradeSuccess] = useState(false);
+
   // Domain management
   const [domains, setDomains] = useState<DomainEntry[]>([]);
   const [newDomain, setNewDomain] = useState("");
   const [domainLoading, setDomainLoading] = useState(false);
   const [domainError, setDomainError] = useState("");
+
+  // Detect ?upgraded=true from Stripe redirect
+  useEffect(() => {
+    if (searchParams.get("upgraded") === "true") {
+      setUpgradeSuccess(true);
+      // Refresh profile to get updated is_pro
+      if (address) {
+        fetch(`/api/profile?wallet=${address}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.user) {
+              setProfile(data.user);
+              setDomains(data.domains || []);
+            }
+          })
+          .catch(console.error);
+      }
+    }
+  }, [searchParams, address]);
 
   // Load profile on mount
   useEffect(() => {
@@ -146,6 +185,35 @@ export default function SettingsPage() {
     }
   };
 
+  const handleUpgrade = async () => {
+    if (!address) return;
+    setUpgrading(true);
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_address: address }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to start checkout");
+        return;
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      alert("Network error — please try again");
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
   if (!isConnected) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-grid">
@@ -198,6 +266,27 @@ export default function SettingsPage() {
         </nav>
 
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
+
+        {/* Upgrade Success Banner */}
+        {upgradeSuccess && (
+          <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/30 flex items-center gap-3">
+            <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-green-400">🎉 Welcome to Pro!</p>
+              <p className="text-xs text-green-400/70">Your payment was successful. Custom domains are now unlocked.</p>
+            </div>
+            <button
+              onClick={() => setUpgradeSuccess(false)}
+              className="ml-auto text-green-400/50 hover:text-green-400 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Profile Section */}
         <section className="card-section mb-6">
@@ -357,12 +446,29 @@ export default function SettingsPage() {
               <p className="text-text-muted text-sm mb-4">
                 Custom domains are available for Pro users.
               </p>
-              <button className="px-6 py-2.5 rounded-xl text-sm font-medium
-                bg-gradient-to-r from-accent-purple/20 to-accent-blue/20
-                border border-accent-purple/30 text-accent-purple
-                hover:border-accent-purple/50 transition-colors">
-                Upgrade to Pro
+              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className="px-6 py-2.5 rounded-xl text-sm font-medium
+                  bg-gradient-to-r from-accent-purple to-accent-blue
+                  text-white shadow-lg shadow-accent-purple/25
+                  hover:shadow-accent-purple/40
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all duration-300"
+              >
+                {upgrading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Redirecting…
+                  </span>
+                ) : (
+                  "⚡ Upgrade to Pro"
+                )}
               </button>
+              <p className="text-xs text-text-muted mt-3">One-time payment · No subscription</p>
             </div>
           ) : (
             <div>
