@@ -7,6 +7,12 @@ import TokenList from "@/components/TokenList";
 import ActivityFeed from "@/components/ActivityFeed";
 import { notFound } from "next/navigation";
 
+/**
+ * ISR: Revalidate custom-domain pages every 60 seconds
+ * so we don't hit the DB on every single request.
+ */
+export const revalidate = 60;
+
 interface Props {
   params: { path: string[] };
 }

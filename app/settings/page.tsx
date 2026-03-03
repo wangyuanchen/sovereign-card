@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount } from "wagmi";
+import { useAccount, useSignMessage } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ConnectWallet from "@/components/ConnectWallet";
@@ -23,7 +23,15 @@ interface DomainEntry {
 
 export default function SettingsPage() {
   const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const router = useRouter();
+
+  /**
+   * Construct the same deterministic message that the server expects.
+   * Must match lib/auth.ts → getDomainAuthMessage()
+   */
+  const getDomainAuthMessage = (action: "add" | "verify", domain: string) =>
+    `Sovereign Card: I authorize "${action}" for domain "${domain}"`;
 
   const [profile, setProfile] = useState<UserProfile>({});
   const [loading, setLoading] = useState(true);
@@ -84,12 +92,17 @@ export default function SettingsPage() {
     setDomainError("");
 
     try {
+      // Sign a message to prove wallet ownership
+      const message = getDomainAuthMessage("add", newDomain);
+      const signature = await signMessageAsync({ message });
+
       const res = await fetch("/api/domains/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           wallet_address: address,
           domain: newDomain,
+          signature,
         }),
       });
 
@@ -108,11 +121,16 @@ export default function SettingsPage() {
   };
 
   const handleVerifyDomain = async (domain: string) => {
+    if (!address) return;
     try {
+      // Sign a message to prove wallet ownership
+      const message = getDomainAuthMessage("verify", domain);
+      const signature = await signMessageAsync({ message });
+
       const res = await fetch("/api/domains/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain }),
+        body: JSON.stringify({ domain, wallet_address: address, signature }),
       });
 
       const data = await res.json();

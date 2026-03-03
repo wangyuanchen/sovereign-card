@@ -8,7 +8,7 @@ import { initializeDatabase } from "@/lib/db";
 export async function GET(request: NextRequest) {
   // Simple auth check — only allow with a secret
   const authHeader = request.headers.get("authorization");
-  const expectedToken = process.env.VERCEL_TOKEN;
+  const expectedToken = process.env.SC_VERCEL_TOKEN;
 
   if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

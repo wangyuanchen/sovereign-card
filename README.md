@@ -41,7 +41,7 @@
 
 ### 2. One-click Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FYOUR_USER%2Fsovereign-card&env=DATABASE_URL,GOLDRUSH_API_KEY,NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,VERCEL_TOKEN,VERCEL_PROJECT_ID)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FYOUR_USER%2Fsovereign-card&env=DATABASE_URL,GOLDRUSH_API_KEY,NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,SC_VERCEL_TOKEN,SC_VERCEL_PROJECT_ID)
 
 Or deploy manually:
 
@@ -59,8 +59,8 @@ In the Vercel dashboard → **Settings → Environment Variables**, add:
 | `DATABASE_URL` | Neon PostgreSQL connection string |
 | `GOLDRUSH_API_KEY` | GoldRush (Covalent) API key |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect Cloud project ID |
-| `VERCEL_TOKEN` | Vercel API token (for domain management) |
-| `VERCEL_PROJECT_ID` | Your Vercel project ID |
+| `SC_VERCEL_TOKEN` | Vercel API token (for domain management) |
+| `SC_VERCEL_PROJECT_ID` | Your Vercel project ID |
 
 > Copy `.env.example` → `.env.local` for local dev.
 
@@ -69,7 +69,7 @@ In the Vercel dashboard → **Settings → Environment Variables**, add:
 After first deploy, hit the init endpoint to create tables:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_VERCEL_TOKEN" \
+curl -H "Authorization: Bearer YOUR_SC_VERCEL_TOKEN" \
   https://your-app.vercel.app/api/init
 ```
 

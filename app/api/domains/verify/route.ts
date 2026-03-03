@@ -1,21 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCustomDomain } from "@/lib/db";
+import { verifyCustomDomain, getUserByWallet, getDomainsByUser } from "@/lib/db";
+import { verifyWalletSignature, getDomainAuthMessage } from "@/lib/auth";
 
 /**
  * POST /api/domains/verify
  * Verify DNS configuration for a custom domain via Vercel API
- * Body: { domain: string }
+ * Body: { domain: string, wallet_address: string, signature: string }
+ *
+ * The caller must sign getDomainAuthMessage("verify", domain)
+ * with the wallet that owns the domain.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { domain } = body;
+    const { domain, wallet_address, signature } = body;
 
-    if (!domain) {
-      return NextResponse.json({ error: "Missing domain" }, { status: 400 });
+    if (!domain || !wallet_address || !signature) {
+      return NextResponse.json(
+        { error: "Missing domain, wallet_address, or signature" },
+        { status: 400 }
+      );
     }
 
-    if (!process.env.VERCEL_TOKEN || !process.env.VERCEL_PROJECT_ID) {
+    // ── Verify wallet signature ───────────────────────────
+    const message = getDomainAuthMessage("verify", domain);
+    const isValid = await verifyWalletSignature(wallet_address, message, signature);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "Invalid signature — wallet ownership not proven" },
+        { status: 401 }
+      );
+    }
+
+    // ── Confirm domain belongs to this wallet ─────────────
+    const user = await getUserByWallet(wallet_address);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userDomains = await getDomainsByUser(user.id);
+    const ownsThisDomain = userDomains.some(
+      (d) => (d as Record<string, string>).domain?.toLowerCase() === domain.toLowerCase()
+    );
+    if (!ownsThisDomain) {
+      return NextResponse.json(
+        { error: "This domain does not belong to your account" },
+        { status: 403 }
+      );
+    }
+
+    if (!process.env.SC_VERCEL_TOKEN || !process.env.SC_VERCEL_PROJECT_ID) {
       return NextResponse.json(
         { error: "Vercel API credentials not configured" },
         { status: 500 }
@@ -31,7 +65,7 @@ export async function POST(request: NextRequest) {
       const configRes = await fetch(
         `https://api.vercel.com/v6/domains/${domain}/config`,
         {
-          headers: { Authorization: `Bearer ${process.env.VERCEL_TOKEN}` },
+          headers: { Authorization: `Bearer ${process.env.SC_VERCEL_TOKEN}` },
         }
       );
 
@@ -47,11 +81,11 @@ export async function POST(request: NextRequest) {
     if (!dnsVerified) {
       try {
         const verifyRes = await fetch(
-          `https://api.vercel.com/v10/projects/${process.env.VERCEL_PROJECT_ID}/domains/${domain}/verify`,
+          `https://api.vercel.com/v10/projects/${process.env.SC_VERCEL_PROJECT_ID}/domains/${domain}/verify`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${process.env.VERCEL_TOKEN}`,
+              Authorization: `Bearer ${process.env.SC_VERCEL_TOKEN}`,
             },
           }
         );
