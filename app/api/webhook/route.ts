@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // ── Verify Stripe signature ────────────────────────────
     if (stripeSecretKey && webhookSecret) {
       const stripe = new Stripe(stripeSecretKey, {
-        apiVersion: "2025-11-17.clover",
+        apiVersion: "2026-01-28.clover",
       });
 
       const body = await request.text();

@@ -11,7 +11,7 @@ export function getStripe(): Stripe {
       "STRIPE_SECRET_KEY is not set. Add it to your .env.local file."
     );
   }
-  return new Stripe(key, { apiVersion: "2025-11-17.clover" });
+  return new Stripe(key, { apiVersion: "2026-01-28.clover" });
 }
 
 /**

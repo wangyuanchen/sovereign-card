@@ -4,6 +4,8 @@ import { useAccount, useSignMessage } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import ConnectWallet from "@/components/ConnectWallet";
+import { useTranslations } from "next-intl";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 interface UserProfile {
   display_name?: string;
@@ -27,7 +29,7 @@ export default function SettingsPageWrapper() {
     <Suspense
       fallback={
         <main className="min-h-screen flex items-center justify-center bg-grid">
-          <div className="text-text-secondary">Loading settings...</div>
+          <div className="text-text-secondary">Loading...</div>
         </main>
       }
     >
@@ -41,6 +43,8 @@ function SettingsPage() {
   const { signMessageAsync } = useSignMessage();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
 
   /**
    * Construct the same deterministic message that the server expects.
@@ -153,7 +157,7 @@ function SettingsPage() {
         setNewDomain("");
       }
     } catch {
-      setDomainError("Network error");
+      setDomainError(t("networkError"));
     } finally {
       setDomainLoading(false);
     }
@@ -208,7 +212,7 @@ function SettingsPage() {
         window.location.href = data.url;
       }
     } catch {
-      alert("Network error — please try again");
+      alert(t("networkError"));
     } finally {
       setUpgrading(false);
     }
@@ -218,8 +222,8 @@ function SettingsPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-grid">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">Settings</h1>
-          <p className="text-text-secondary">Connect your wallet to access settings</p>
+          <h1 className="text-2xl font-bold mb-2">{t("title")}</h1>
+          <p className="text-text-secondary">{t("connectPrompt")}</p>
         </div>
         <ConnectWallet />
       </main>
@@ -235,7 +239,7 @@ function SettingsPage() {
             <path className="opacity-75" fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          Loading settings...
+          {t("loadingSettings")}
         </div>
       </main>
     );
@@ -253,19 +257,22 @@ function SettingsPage() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            <span className="text-sm">Home</span>
+            <span className="text-sm">{tc("home")}</span>
           </a>
           {address && (
-            <button
-              onClick={() => router.push(`/profile/${address}`)}
-              className="text-sm text-accent-purple hover:text-accent-blue transition-colors"
-            >
-              View My Card →
-            </button>
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
+              <button
+                onClick={() => router.push(`/profile/${address}`)}
+                className="text-sm text-accent-purple hover:text-accent-blue transition-colors"
+              >
+                {t("viewMyCard")}
+              </button>
+            </div>
           )}
         </nav>
 
-        <h1 className="text-3xl font-bold mb-8">Settings</h1>
+        <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
 
         {/* Upgrade Success Banner */}
         {upgradeSuccess && (
@@ -274,8 +281,8 @@ function SettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-green-400">🎉 Welcome to Pro!</p>
-              <p className="text-xs text-green-400/70">Your payment was successful. Custom domains are now unlocked.</p>
+              <p className="text-sm font-medium text-green-400">{t("upgradeSuccess")}</p>
+              <p className="text-xs text-green-400/70">{t("upgradeSuccessDesc")}</p>
             </div>
             <button
               onClick={() => setUpgradeSuccess(false)}
@@ -295,12 +302,12 @@ function SettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            Profile
+            {t("profile")}
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-text-secondary mb-1.5">Display Name</label>
+              <label className="block text-sm text-text-secondary mb-1.5">{t("displayName")}</label>
               <input
                 type="text"
                 value={profile.display_name || ""}
@@ -313,11 +320,11 @@ function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-text-secondary mb-1.5">Bio</label>
+              <label className="block text-sm text-text-secondary mb-1.5">{t("bio")}</label>
               <textarea
                 value={profile.bio || ""}
                 onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
-                placeholder="Building the future of web3..."
+                placeholder={t("bioPlaceholder")}
                 rows={3}
                 className="w-full px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle
                   focus:border-accent-purple/50 focus:outline-none focus:ring-1 focus:ring-accent-purple/25
@@ -326,7 +333,7 @@ function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-text-secondary mb-1.5">Avatar URL</label>
+              <label className="block text-sm text-text-secondary mb-1.5">{t("avatarUrl")}</label>
               <input
                 type="url"
                 value={profile.avatar_url || ""}
@@ -347,7 +354,7 @@ function SettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            Social Links
+            {t("socialLinks")}
           </h2>
 
           <div className="space-y-4">
@@ -412,14 +419,14 @@ function SettingsPage() {
               disabled:opacity-50 disabled:cursor-not-allowed
               transition-all duration-300"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </button>
           {saved && (
             <span className="text-sm text-green-400 flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Saved!
+              {t("saved")}
             </span>
           )}
         </div>
@@ -432,11 +439,11 @@ function SettingsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
-              Custom Domains
+              {t("customDomains")}
             </h2>
             {!profile.is_pro && (
               <span className="text-xs px-2.5 py-1 rounded-full bg-accent-purple/10 text-accent-purple border border-accent-purple/20">
-                PRO
+                {t("pro")}
               </span>
             )}
           </div>
@@ -444,7 +451,7 @@ function SettingsPage() {
           {!profile.is_pro ? (
             <div className="text-center py-8">
               <p className="text-text-muted text-sm mb-4">
-                Custom domains are available for Pro users.
+                {t("domainsProOnly")}
               </p>
               <button
                 onClick={handleUpgrade}
@@ -465,10 +472,10 @@ function SettingsPage() {
                     Redirecting…
                   </span>
                 ) : (
-                  "⚡ Upgrade to Pro"
+                  t("upgradeToPro")
                 )}
               </button>
-              <p className="text-xs text-text-muted mt-3">One-time payment · No subscription</p>
+              <p className="text-xs text-text-muted mt-3">{t("oneTimePayment")}</p>
             </div>
           ) : (
             <div>
@@ -489,7 +496,7 @@ function SettingsPage() {
                           onClick={() => handleVerifyDomain(d.domain)}
                           className="text-xs text-accent-cyan hover:underline"
                         >
-                          Verify DNS
+                          {t("verifyDNS")}
                         </button>
                       )}
                     </div>
@@ -503,7 +510,7 @@ function SettingsPage() {
                   type="text"
                   value={newDomain}
                   onChange={(e) => setNewDomain(e.target.value)}
-                  placeholder="card.yourdomain.com"
+                  placeholder={t("domainPlaceholder")}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle
                     focus:border-accent-purple/50 focus:outline-none focus:ring-1 focus:ring-accent-purple/25
                     text-text-primary placeholder:text-text-muted transition-colors text-sm"
@@ -516,7 +523,7 @@ function SettingsPage() {
                     hover:bg-accent-blue/20 disabled:opacity-50
                     transition-colors"
                 >
-                  {domainLoading ? "..." : "Add"}
+                  {domainLoading ? "..." : t("addDomain")}
                 </button>
               </div>
 
@@ -525,7 +532,7 @@ function SettingsPage() {
               )}
 
               <p className="text-xs text-text-muted mt-3">
-                Add a CNAME record pointing to <code className="text-accent-cyan">cname.vercel-dns.com</code>
+                {t("cnameHint")} <code className="text-accent-cyan">cname.vercel-dns.com</code>
               </p>
             </div>
           )}

@@ -4,10 +4,12 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function ConnectWallet() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const t = useTranslations("wallet");
 
   useEffect(() => {
     if (isConnected && address) {
@@ -70,7 +72,7 @@ export default function ConnectWallet() {
                             d="M13 10V3L4 14h7v7l9-11h-7z"
                           />
                         </svg>
-                        Connect Wallet
+                        {t("connect")}
                       </span>
                     </button>
                   );
@@ -84,7 +86,7 @@ export default function ConnectWallet() {
                         border border-red-500/30 bg-red-500/10
                         hover:bg-red-500/20 transition-colors"
                     >
-                      Wrong network
+                      {t("wrongNetwork")}
                     </button>
                   );
                 }
@@ -137,7 +139,7 @@ export default function ConnectWallet() {
               hover:border-accent-blue/50 hover:text-accent-blue
               transition-all"
           >
-            View Card
+            {t("viewCard")}
           </button>
           <button
             onClick={() => router.push("/settings")}
@@ -146,7 +148,7 @@ export default function ConnectWallet() {
               hover:border-accent-purple/50 hover:text-accent-purple
               transition-all"
           >
-            Settings
+            {t("settings")}
           </button>
         </div>
       )}

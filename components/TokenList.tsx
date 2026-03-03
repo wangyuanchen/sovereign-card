@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 interface TokenData {
   contract_name: string;
@@ -35,6 +36,8 @@ function formatUSD(value: number): string {
 }
 
 export default function TokenList({ tokens }: TokenListProps) {
+  const t = useTranslations("profile");
+
   if (!tokens?.items?.length) {
     return (
       <div className="text-center py-12 text-text-muted">
@@ -42,7 +45,7 @@ export default function TokenList({ tokens }: TokenListProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="text-sm">No tokens found</p>
+        <p className="text-sm">{t("noTokens")}</p>
       </div>
     );
   }
@@ -58,7 +61,7 @@ export default function TokenList({ tokens }: TokenListProps) {
     <div>
       {/* Total Portfolio Value */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border-subtle">
-        <span className="text-sm text-text-secondary">Total Value</span>
+        <span className="text-sm text-text-secondary">{t("totalValue")}</span>
         <span className="text-lg font-bold bg-gradient-to-r from-accent-blue to-accent-cyan bg-clip-text text-transparent">
           {formatUSD(totalValue)}
         </span>
@@ -113,7 +116,7 @@ export default function TokenList({ tokens }: TokenListProps) {
 
       {sortedTokens.length > 15 && (
         <p className="text-center text-xs text-text-muted mt-3">
-          +{sortedTokens.length - 15} more tokens
+          {t("moreTokens", { count: sortedTokens.length - 15 })}
         </p>
       )}
     </div>

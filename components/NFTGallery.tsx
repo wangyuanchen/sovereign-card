@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface NFTData {
   contract_name: string;
@@ -22,6 +23,7 @@ interface NFTGalleryProps {
 }
 
 export default function NFTGallery({ nfts }: NFTGalleryProps) {
+  const t = useTranslations("profile");
   const [selectedNFT, setSelectedNFT] = useState<{
     name: string;
     image: string;
@@ -37,7 +39,7 @@ export default function NFTGallery({ nfts }: NFTGalleryProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <p className="text-sm">No NFTs found</p>
+        <p className="text-sm">{t("noNFTs")}</p>
       </div>
     );
   }
@@ -56,7 +58,7 @@ export default function NFTGallery({ nfts }: NFTGalleryProps) {
   if (allNFTs.length === 0) {
     return (
       <div className="text-center py-12 text-text-muted">
-        <p className="text-sm">No NFTs with images found</p>
+        <p className="text-sm">{t("noNFTsWithImages")}</p>
       </div>
     );
   }
@@ -93,7 +95,7 @@ export default function NFTGallery({ nfts }: NFTGalleryProps) {
 
       {allNFTs.length > 12 && (
         <p className="text-center text-xs text-text-muted mt-3">
-          +{allNFTs.length - 12} more NFTs
+          {t("moreNFTs", { count: allNFTs.length - 12 })}
         </p>
       )}
 

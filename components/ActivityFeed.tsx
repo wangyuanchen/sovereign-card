@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface TransactionData {
   block_signed_at: string;
   tx_hash: string;
@@ -29,10 +31,10 @@ function formatTimeAgo(dateStr: string): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -44,6 +46,8 @@ function formatETH(value: string): string {
 }
 
 export default function ActivityFeed({ transactions, currentWallet }: ActivityFeedProps) {
+  const t = useTranslations("profile");
+
   if (!transactions?.items?.length) {
     return (
       <div className="text-center py-12 text-text-muted">
@@ -51,7 +55,7 @@ export default function ActivityFeed({ transactions, currentWallet }: ActivityFe
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
-        <p className="text-sm">No recent activity</p>
+        <p className="text-sm">{t("noActivity")}</p>
       </div>
     );
   }
@@ -106,7 +110,7 @@ export default function ActivityFeed({ transactions, currentWallet }: ActivityFe
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-text-primary">
-                  {isContract ? "Contract Call" : isSent ? "Sent" : "Received"}
+                  {isContract ? t("contractCall") : isSent ? t("sent") : t("received")}
                 </span>
                 <span className={`text-sm font-medium ${
                   isSent ? "text-red-400" : "text-green-400"
@@ -141,7 +145,7 @@ export default function ActivityFeed({ transactions, currentWallet }: ActivityFe
 
       {transactions.items.length > 10 && (
         <p className="text-center text-xs text-text-muted mt-3">
-          Showing latest 10 of {transactions.items.length} transactions
+          {t("showingLatest", { count: transactions.items.length })}
         </p>
       )}
     </div>
