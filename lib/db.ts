@@ -142,6 +142,16 @@ export async function verifyCustomDomain(domain: string, vercelDomainId: string)
   return rows[0] ?? null;
 }
 
+export async function deleteCustomDomain(userId: string, domain: string) {
+  const sql = getDb();
+  const rows = await sql`
+    DELETE FROM custom_domains
+    WHERE user_id = ${userId} AND domain = ${domain.toLowerCase()}
+    RETURNING *
+  `;
+  return rows[0] ?? null;
+}
+
 export async function getDomainsByUser(userId: string) {
   const sql = getDb();
   return sql`

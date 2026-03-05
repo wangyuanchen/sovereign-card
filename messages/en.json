@@ -80,6 +80,10 @@
     "domainPlaceholder": "card.yourdomain.com",
     "cnameHintNew": "After adding a domain, click \"DNS Records\" to see the exact records you need to configure.",
     "cnameHint": "Add a CNAME record pointing to",
+    "deleteDomain": "Delete",
+    "deleteConfirm": "Are you sure you want to delete {domain}? This will remove the domain from your account and Vercel.",
+    "deleteSuccess": "Domain {domain} has been deleted.",
+    "deleting": "Deleting...",
     "networkError": "Network error",
     "upgradeSuccess": "🎉 Welcome to Pro!",
     "upgradeSuccessDesc": "Your payment was successful. Custom domains are now unlocked."

@@ -10,7 +10,7 @@ export const MAX_DOMAINS_PER_USER = 3;
  * Both client and server construct the same string for signature verification.
  */
 export function getDomainAuthMessage(
-  action: "add" | "verify",
+  action: "add" | "verify" | "delete",
   domain: string
 ): string {
   return `Sovereign Card: I authorize "${action}" for domain "${domain}"`;

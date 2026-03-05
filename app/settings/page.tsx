@@ -57,7 +57,7 @@ function SettingsPage() {
    * Construct the same deterministic message that the server expects.
    * Must match lib/auth.ts → getDomainAuthMessage()
    */
-  const getDomainAuthMessage = (action: "add" | "verify", domain: string) =>
+  const getDomainAuthMessage = (action: "add" | "verify" | "delete", domain: string) =>
     `Sovereign Card: I authorize "${action}" for domain "${domain}"`;
 
   const [profile, setProfile] = useState<UserProfile>({});
@@ -76,6 +76,7 @@ function SettingsPage() {
   const [dnsConfigLoading, setDnsConfigLoading] = useState<string | null>(null);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [verifyingDomain, setVerifyingDomain] = useState<string | null>(null);
+  const [deletingDomain, setDeletingDomain] = useState<string | null>(null);
 
   // Toast notification
   const [toast, setToast] = useState<{
@@ -224,6 +225,39 @@ function SettingsPage() {
       console.error("Failed to fetch DNS config");
     } finally {
       setDnsConfigLoading(null);
+    }
+  };
+
+  const handleDeleteDomain = async (domain: string) => {
+    if (!address) return;
+
+    const confirmMsg = t("deleteConfirm").replace("{domain}", domain);
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeletingDomain(domain);
+    try {
+      const message = getDomainAuthMessage("delete", domain);
+      const signature = await signMessageAsync({ message });
+
+      const res = await fetch("/api/domains/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_address: address, domain, signature }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setDomains((prev) => prev.filter((d) => d.domain !== domain));
+        if (expandedDomain === domain) setExpandedDomain(null);
+        showToast("success", t("deleteSuccess").replace("{domain}", domain));
+      } else {
+        showToast("error", data.error || "Failed to delete domain");
+      }
+    } catch (err) {
+      console.error("Delete domain error:", err);
+      showToast("error", t("networkError"));
+    } finally {
+      setDeletingDomain(null);
     }
   };
 
@@ -598,6 +632,13 @@ function SettingsPage() {
                           {d.verified && (
                             <span className="text-xs text-green-400">{t("verified")}</span>
                           )}
+                          <button
+                            onClick={() => handleDeleteDomain(d.domain)}
+                            disabled={deletingDomain === d.domain}
+                            className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {deletingDomain === d.domain ? t("deleting") : t("deleteDomain")}
+                          </button>
                         </div>
                       </div>
 
