@@ -31,11 +31,8 @@ export async function fetchVercelDnsRecords(
   const token = process.env.SC_VERCEL_TOKEN!;
   const projectId = process.env.SC_VERCEL_PROJECT_ID!;
 
-  const parts = domain.split(".");
-  const isSubdomain = parts.length > 2;
-  // Apex domain: e.g. "yuansen.dpdns.org" from "card.yuansen.dpdns.org"
-  const apexDomain = isSubdomain ? parts.slice(parts.length - 2).join(".") : domain;
-  const recordName = isSubdomain ? parts.slice(0, parts.length - 2).join(".") : "@";
+  // Will be determined from Vercel's apexName response
+  let apexName: string | null = null;
 
   // ── 1. Get project domain details → TXT verification records ──
   try {
@@ -51,8 +48,11 @@ export async function fetchVercelDnsRecords(
       const data = await res.json();
       console.log("[vercel] GET project domain response:", JSON.stringify(data, null, 2));
 
+      // Vercel tells us the real apex domain (handles public suffix correctly)
+      apexName = (data.apexName as string) || null;
+
       // Extract TXT verification records — show only prefix, not full domain
-      const apex = (data.apexName as string) || apexDomain;
+      const apex = apexName || domain;
       if (Array.isArray(data.verification)) {
         for (const v of data.verification) {
           const fullName = v.domain || `_vercel.${apex}`;
@@ -70,6 +70,15 @@ export async function fetchVercelDnsRecords(
   } catch (err) {
     console.error("[vercel] GET project domain error:", err);
   }
+
+  // ── Determine subdomain vs apex using Vercel's apexName ───────
+  // apexName is the registrable domain Vercel identified, e.g.:
+  //   domain = "card.yuansen.dpdns.org", apexName = "yuansen.dpdns.org"
+  //   domain = "blog.example.com",       apexName = "example.com"
+  //   domain = "example.com",            apexName = "example.com"
+  const apex = apexName || domain;
+  const isSubdomain = domain.toLowerCase() !== apex.toLowerCase();
+  const recordName = isSubdomain ? stripApex(domain, apex) : "@";
 
   // ── 2. Get domain config → recommended CNAME / A (project-specific) ──
   let cnameTarget = "cname.vercel-dns.com"; // fallback
@@ -151,10 +160,8 @@ export function parseDnsRecordsFromVercelResponse(
   const records: { type: string; name: string; value: string }[] = [];
 
   // Extract TXT verification records — show only prefix, not full domain
-  const parts = domain.split(".");
-  const isSubdomain = parts.length > 2;
-  const apexDomain = isSubdomain ? parts.slice(parts.length - 2).join(".") : domain;
-  const apex = (data.apexName as string) || apexDomain;
+  // Use Vercel's apexName to correctly determine the prefix
+  const apex = (data.apexName as string) || domain;
 
   if (Array.isArray(data.verification)) {
     for (const v of data.verification as { type?: string; domain?: string; value?: string }[]) {
