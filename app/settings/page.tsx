@@ -656,7 +656,12 @@ function SettingsPage() {
                             {t("dnsInstructions")}
                           </p>
                           <div className="space-y-2">
-                            {d.dnsRecords.map((rec, idx) => (
+                            {d.dnsRecords.map((rec, idx) => {
+                              const nameId = `${d.domain}-${idx}-name`;
+                              const valueId = `${d.domain}-${idx}-value`;
+                              const nameCopied = copiedId === nameId;
+                              const valueCopied = copiedId === valueId;
+                              return (
                               <div
                                 key={idx}
                                 className="grid grid-cols-[60px_1fr_1fr] gap-2 text-xs font-mono"
@@ -665,41 +670,40 @@ function SettingsPage() {
                                   {rec.type}
                                 </span>
                                 <span
-                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-text-primary truncate cursor-pointer hover:bg-bg-primary transition-colors overflow-visible"
+                                  className={`flex items-center gap-1 px-2 py-1.5 rounded border truncate cursor-pointer transition-all duration-200 ${
+                                    nameCopied
+                                      ? "bg-green-500/10 border-green-500/50 text-green-400"
+                                      : "bg-bg-elevated border-border-subtle text-text-primary hover:bg-bg-primary"
+                                  }`}
                                   title={rec.name}
                                   onClick={() => {
-                                    const id = `${d.domain}-${idx}-name`;
                                     navigator.clipboard.writeText(rec.name);
-                                    setCopiedId(id);
-                                    setTimeout(() => setCopiedId((prev) => prev === id ? null : prev), 1500);
+                                    setCopiedId(nameId);
+                                    setTimeout(() => setCopiedId((prev) => prev === nameId ? null : prev), 1500);
                                   }}
                                 >
-                                  <span className="block truncate">{rec.name}</span>
-                                  {copiedId === `${d.domain}-${idx}-name` && (
-                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg pointer-events-none animate-in fade-in duration-150">
-                                      {t("copied")}
-                                    </span>
-                                  )}
+                                  {nameCopied && <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                                  <span className="truncate">{nameCopied ? t("copied") : rec.name}</span>
                                 </span>
                                 <span
-                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-accent-cyan truncate cursor-pointer hover:bg-bg-primary transition-colors overflow-visible"
+                                  className={`flex items-center gap-1 px-2 py-1.5 rounded border truncate cursor-pointer transition-all duration-200 ${
+                                    valueCopied
+                                      ? "bg-green-500/10 border-green-500/50 text-green-400"
+                                      : "bg-bg-elevated border-border-subtle text-accent-cyan hover:bg-bg-primary"
+                                  }`}
                                   title={rec.value}
                                   onClick={() => {
-                                    const id = `${d.domain}-${idx}-value`;
                                     navigator.clipboard.writeText(rec.value);
-                                    setCopiedId(id);
-                                    setTimeout(() => setCopiedId((prev) => prev === id ? null : prev), 1500);
+                                    setCopiedId(valueId);
+                                    setTimeout(() => setCopiedId((prev) => prev === valueId ? null : prev), 1500);
                                   }}
                                 >
-                                  <span className="block truncate">{rec.value}</span>
-                                  {copiedId === `${d.domain}-${idx}-value` && (
-                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg pointer-events-none animate-in fade-in duration-150">
-                                      {t("copied")}
-                                    </span>
-                                  )}
+                                  {valueCopied && <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                                  <span className="truncate">{valueCopied ? t("copied") : rec.value}</span>
                                 </span>
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                           <p className="text-[10px] text-text-muted mt-2">
                             {t("clickToCopy")}
