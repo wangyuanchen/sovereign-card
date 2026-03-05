@@ -77,6 +77,10 @@ function SettingsPage() {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [verifyingDomain, setVerifyingDomain] = useState<string | null>(null);
   const [deletingDomain, setDeletingDomain] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    domain: string;
+    visible: boolean;
+  } | null>(null);
 
   // Toast notification
   const [toast, setToast] = useState<{
@@ -228,12 +232,14 @@ function SettingsPage() {
     }
   };
 
-  const handleDeleteDomain = async (domain: string) => {
+  const handleDeleteDomain = (domain: string) => {
     if (!address) return;
+    setConfirmModal({ domain, visible: true });
+  };
 
-    const confirmMsg = t("deleteConfirm").replace("{domain}", domain);
-    if (!window.confirm(confirmMsg)) return;
-
+  const executeDeleteDomain = async (domain: string) => {
+    if (!address) return;
+    setConfirmModal(null);
     setDeletingDomain(domain);
     try {
       const message = getDomainAuthMessage("delete", domain);
@@ -662,6 +668,7 @@ function SettingsPage() {
                                   title={rec.name}
                                   onClick={() => {
                                     navigator.clipboard.writeText(rec.name);
+                                    showToast("info", t("copied"));
                                   }}
                                 >
                                   {rec.name}
@@ -671,6 +678,7 @@ function SettingsPage() {
                                   title={rec.value}
                                   onClick={() => {
                                     navigator.clipboard.writeText(rec.value);
+                                    showToast("info", t("copied"));
                                   }}
                                 >
                                   {rec.value}
@@ -718,6 +726,59 @@ function SettingsPage() {
           )}
         </section>
       </div>
+
+      {/* Delete Confirm Modal */}
+      {confirmModal?.visible && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setConfirmModal(null)}
+          />
+          {/* Modal */}
+          <div className="relative z-10 w-full max-w-sm mx-4 rounded-2xl border border-red-500/30 bg-bg-card/95 backdrop-blur-md shadow-2xl shadow-red-500/10 animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div className="p-6">
+              {/* Icon */}
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+              </div>
+              {/* Text */}
+              <h3 className="text-center text-lg font-semibold text-text-primary mb-2">
+                {t("deleteDomain")}
+              </h3>
+              <p className="text-center text-sm text-text-secondary mb-1">
+                {t("deleteConfirm").replace("{domain}", confirmModal.domain)}
+              </p>
+              <p className="text-center text-xs text-text-muted font-mono mb-6">
+                {confirmModal.domain}
+              </p>
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium
+                    bg-bg-elevated border border-border-subtle text-text-secondary
+                    hover:bg-bg-primary hover:text-text-primary transition-colors"
+                >
+                  {t("cancelDelete")}
+                </button>
+                <button
+                  onClick={() => executeDeleteDomain(confirmModal.domain)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium
+                    bg-red-500/10 border border-red-500/30 text-red-400
+                    hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                >
+                  {t("confirmDelete")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (

@@ -95,16 +95,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (!dnsVerified) {
-      // Extract DNS records from verify response first, fall back to GET
+      // Fetch complete DNS records (TXT verification + project-specific CNAME/A)
       let dnsRecords: { type: string; name: string; value: string }[] = [];
-      if (vercelVerifyData) {
-        dnsRecords = parseDnsRecordsFromVercelResponse(domain, vercelVerifyData);
-      }
-      if (dnsRecords.length === 0) {
-        try {
-          dnsRecords = await fetchVercelDnsRecords(domain);
-        } catch (err) {
-          console.error("Failed to fetch DNS records:", err);
+      try {
+        dnsRecords = await fetchVercelDnsRecords(domain);
+      } catch (err) {
+        console.error("Failed to fetch DNS records:", err);
+        // Fall back to just TXT records from the verify response
+        if (vercelVerifyData) {
+          dnsRecords = parseDnsRecordsFromVercelResponse(domain, vercelVerifyData);
         }
       }
 

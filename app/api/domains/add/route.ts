@@ -120,18 +120,16 @@ export async function POST(request: NextRequest) {
     // ── Only save to DB after Vercel succeeds ─────────────
     const domainRecord = await addCustomDomain(user.id, domain);
 
-    // ── Extract DNS records from Vercel response ──────────
-    // Prefer records from the POST response (most accurate),
-    // fall back to fetching from GET endpoint
+    // ── Fetch complete DNS records (TXT verification + project-specific CNAME/A) ──
+    // fetchVercelDnsRecords calls both v9 (TXT) and v6/config (recommendedCNAME)
     let dnsRecords: { type: string; name: string; value: string }[] = [];
-    if (vercelData) {
-      dnsRecords = parseDnsRecordsFromVercelResponse(domain, vercelData);
-    }
-    if (dnsRecords.length === 0) {
-      try {
-        dnsRecords = await fetchVercelDnsRecords(domain);
-      } catch (err) {
-        console.error("Failed to fetch DNS records:", err);
+    try {
+      dnsRecords = await fetchVercelDnsRecords(domain);
+    } catch (err) {
+      console.error("Failed to fetch DNS records:", err);
+      // Fall back to just TXT records from the POST response
+      if (vercelData) {
+        dnsRecords = parseDnsRecordsFromVercelResponse(domain, vercelData);
       }
     }
 

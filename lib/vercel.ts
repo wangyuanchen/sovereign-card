@@ -4,16 +4,26 @@
  * Uses two Vercel endpoints:
  *   1. GET /v9/projects/{id}/domains/{domain}
  *      → Returns `verification[]` with TXT records needed for domain ownership proof
- *      → Also returns `verified` status
  *
- *   2. GET /v6/domains/{domain}/config
- *      → Returns `misconfigured` (whether DNS is pointing to Vercel)
- *      → `cnames` array contains what DNS currently resolves to (NOT the intended target)
- *
- * For the CNAME target we always use `cname.vercel-dns.com` (universal Vercel alias).
- * Vercel Dashboard may show a project-specific hostname like `abc123.vercel-dns-017.com`,
- * but `cname.vercel-dns.com` resolves to the same infrastructure and is officially supported.
+ *   2. GET /v6/domains/{domain}/config?projectIdOrName={id}
+ *      → Returns `recommendedCNAME` and `recommendedIPv4` — the project-specific
+ *        CNAME/A targets the user must point their DNS to.
+ *        e.g. `02b4cfea893133a6.vercel-dns-017.com` (NOT the generic cname.vercel-dns.com)
  */
+/**
+ * Strip the apex domain suffix from a full DNS name to get just the prefix.
+ * e.g. "_vercel.yuansen.dpdns.org" with apex "yuansen.dpdns.org" → "_vercel"
+ *      "card.yuansen.dpdns.org" with apex "yuansen.dpdns.org" → "card"
+ *      "yuansen.dpdns.org" with apex "yuansen.dpdns.org" → "@"
+ */
+function stripApex(fullName: string, apex: string): string {
+  if (fullName === apex) return "@";
+  if (fullName.endsWith(`.${apex}`)) {
+    return fullName.slice(0, -(apex.length + 1));
+  }
+  return fullName;
+}
+
 export async function fetchVercelDnsRecords(
   domain: string
 ): Promise<{ type: string; name: string; value: string }[]> {
@@ -23,6 +33,8 @@ export async function fetchVercelDnsRecords(
 
   const parts = domain.split(".");
   const isSubdomain = parts.length > 2;
+  // Apex domain: e.g. "yuansen.dpdns.org" from "card.yuansen.dpdns.org"
+  const apexDomain = isSubdomain ? parts.slice(parts.length - 2).join(".") : domain;
   const recordName = isSubdomain ? parts.slice(0, parts.length - 2).join(".") : "@";
 
   // ── 1. Get project domain details → TXT verification records ──
@@ -39,12 +51,14 @@ export async function fetchVercelDnsRecords(
       const data = await res.json();
       console.log("[vercel] GET project domain response:", JSON.stringify(data, null, 2));
 
-      // Extract TXT verification records
+      // Extract TXT verification records — show only prefix, not full domain
+      const apex = (data.apexName as string) || apexDomain;
       if (Array.isArray(data.verification)) {
         for (const v of data.verification) {
+          const fullName = v.domain || `_vercel.${apex}`;
           records.push({
             type: v.type || "TXT",
-            name: v.domain || `_vercel.${data.apexName || domain}`,
+            name: stripApex(fullName, apex),
             value: v.value || "",
           });
         }
@@ -57,21 +71,64 @@ export async function fetchVercelDnsRecords(
     console.error("[vercel] GET project domain error:", err);
   }
 
-  // ── 2. Always add the CNAME / A record for routing ────────────
-  // This tells the user how to point their domain to Vercel.
-  // cname.vercel-dns.com is the universal CNAME alias for all Vercel projects.
+  // ── 2. Get domain config → recommended CNAME / A (project-specific) ──
+  let cnameTarget = "cname.vercel-dns.com"; // fallback
+  let aTarget = "76.76.21.21"; // fallback
+
+  try {
+    const configRes = await fetch(
+      `https://api.vercel.com/v6/domains/${domain}/config?projectIdOrName=${projectId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        next: { revalidate: 0 },
+      }
+    );
+
+    if (configRes.ok) {
+      const configData = await configRes.json();
+      console.log("[vercel] GET domain config response:", JSON.stringify(configData, null, 2));
+
+      // recommendedCNAME: [{ rank: "1", value: "abc123.vercel-dns-017.com" }]
+      if (Array.isArray(configData.recommendedCNAME) && configData.recommendedCNAME.length > 0) {
+        // Pick the highest priority (rank=1) or first entry
+        const sorted = [...configData.recommendedCNAME].sort(
+          (a: { rank: string }, b: { rank: string }) => Number(a.rank) - Number(b.rank)
+        );
+        cnameTarget = sorted[0].value;
+      }
+
+      // recommendedIPv4: [{ rank: "1", value: ["76.76.21.21"] }]
+      if (Array.isArray(configData.recommendedIPv4) && configData.recommendedIPv4.length > 0) {
+        const sorted = [...configData.recommendedIPv4].sort(
+          (a: { rank: string }, b: { rank: string }) => Number(a.rank) - Number(b.rank)
+        );
+        const ipValue = sorted[0].value;
+        if (Array.isArray(ipValue) && ipValue.length > 0) {
+          aTarget = ipValue[0];
+        } else if (typeof ipValue === "string") {
+          aTarget = ipValue;
+        }
+      }
+    } else {
+      const errText = await configRes.text().catch(() => "");
+      console.error("[vercel] GET domain config failed:", configRes.status, errText);
+    }
+  } catch (err) {
+    console.error("[vercel] GET domain config error:", err);
+  }
+
+  // ── 3. Add the routing record with project-specific target ────
   if (isSubdomain) {
     records.push({
       type: "CNAME",
       name: recordName,
-      value: "cname.vercel-dns.com",
+      value: cnameTarget,
     });
   } else {
-    // Apex domain → A record to Vercel's anycast IP
     records.push({
       type: "A",
       name: "@",
-      value: "76.76.21.21",
+      value: aTarget,
     });
   }
 
@@ -82,6 +139,10 @@ export async function fetchVercelDnsRecords(
  * Parse DNS records from a Vercel "add domain" or "verify domain" response.
  * Call this right after POST /v10/projects/{id}/domains to capture
  * the verification records Vercel returns in the response body.
+ *
+ * NOTE: The POST response does NOT contain recommendedCNAME, so we still
+ * need to call fetchVercelDnsRecords() afterwards for the routing record.
+ * This function only extracts TXT verification records from the response.
  */
 export function parseDnsRecordsFromVercelResponse(
   domain: string,
@@ -89,34 +150,21 @@ export function parseDnsRecordsFromVercelResponse(
 ): { type: string; name: string; value: string }[] {
   const records: { type: string; name: string; value: string }[] = [];
 
+  // Extract TXT verification records — show only prefix, not full domain
   const parts = domain.split(".");
   const isSubdomain = parts.length > 2;
-  const recordName = isSubdomain ? parts.slice(0, parts.length - 2).join(".") : "@";
+  const apexDomain = isSubdomain ? parts.slice(parts.length - 2).join(".") : domain;
+  const apex = (data.apexName as string) || apexDomain;
 
-  // Extract TXT verification records from response
   if (Array.isArray(data.verification)) {
     for (const v of data.verification as { type?: string; domain?: string; value?: string }[]) {
+      const fullName = v.domain || `_vercel.${apex}`;
       records.push({
         type: v.type || "TXT",
-        name: v.domain || `_vercel.${(data.apexName as string) || domain}`,
+        name: stripApex(fullName, apex),
         value: v.value || "",
       });
     }
-  }
-
-  // Add routing record (CNAME for subdomain, A for apex)
-  if (isSubdomain) {
-    records.push({
-      type: "CNAME",
-      name: recordName,
-      value: "cname.vercel-dns.com",
-    });
-  } else {
-    records.push({
-      type: "A",
-      name: "@",
-      value: "76.76.21.21",
-    });
   }
 
   return records;

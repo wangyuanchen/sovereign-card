@@ -76,6 +76,7 @@
     "verified": "✓ 已验证",
     "dnsInstructions": "请在你的域名服务商后台添加以下 DNS 记录：",
     "clickToCopy": "💡 点击 Name 或 Value 可复制到剪贴板",
+    "copied": "✅ 已复制到剪贴板",
     "addDomain": "添加",
     "domainPlaceholder": "card.yourdomain.com",
     "cnameHintNew": "添加域名后，点击\"DNS 记录\"查看需要配置的具体记录。",
@@ -84,6 +85,8 @@
     "deleteConfirm": "确定要删除 {domain} 吗？该域名将从你的账号和 Vercel 中移除。",
     "deleteSuccess": "域名 {domain} 已删除。",
     "deleting": "删除中...",
+    "cancelDelete": "取消",
+    "confirmDelete": "确认删除",
     "networkError": "网络错误",
     "upgradeSuccess": "🎉 欢迎成为 Pro！",
     "upgradeSuccessDesc": "支付成功，自定义域名已解锁。"

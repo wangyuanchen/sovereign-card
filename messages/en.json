@@ -76,6 +76,7 @@
     "verified": "✓ Verified",
     "dnsInstructions": "Add these DNS records in your domain provider's dashboard:",
     "clickToCopy": "💡 Click on Name or Value to copy to clipboard",
+    "copied": "✅ Copied to clipboard",
     "addDomain": "Add",
     "domainPlaceholder": "card.yourdomain.com",
     "cnameHintNew": "After adding a domain, click \"DNS Records\" to see the exact records you need to configure.",
@@ -84,6 +85,8 @@
     "deleteConfirm": "Are you sure you want to delete {domain}? This will remove the domain from your account and Vercel.",
     "deleteSuccess": "Domain {domain} has been deleted.",
     "deleting": "Deleting...",
+    "cancelDelete": "Cancel",
+    "confirmDelete": "Delete",
     "networkError": "Network error",
     "upgradeSuccess": "🎉 Welcome to Pro!",
     "upgradeSuccessDesc": "Your payment was successful. Custom domains are now unlocked."
