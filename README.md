@@ -105,7 +105,7 @@ app/
 ├── providers.tsx              # Client providers (wagmi, RainbowKit, React Query)
 ├── profile/[wallet]/page.tsx  # Public profile card page
 ├── settings/page.tsx          # User settings (bio, socials, domains)
-├── _custom-domain/[...path]/  # Custom domain renderer
+├── custom-domain/[...path]/   # Custom domain renderer
 └── api/
     ├── profile/route.ts       # GET / POST / PUT user profile
     ├── domains/add/route.ts   # Add custom domain → Vercel API
@@ -136,7 +136,7 @@ vercel.json                    # Vercel config (headers, crons, region)
 2. API adds domain to Vercel project via Vercel REST API
 3. User sets `CNAME card.example.com → cname.vercel-dns.com`
 4. User clicks "Verify DNS" — calls Vercel domain verify API
-5. Middleware detects non-default hostname → rewrites to `/_custom-domain/[host]`
+5. Middleware detects non-default hostname → rewrites to `/custom-domain/[host]`
 6. Page looks up domain → user mapping in DB and renders their card
 
 ## Payment Model

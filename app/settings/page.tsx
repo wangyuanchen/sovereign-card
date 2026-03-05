@@ -17,10 +17,17 @@ interface UserProfile {
   is_pro?: boolean;
 }
 
+interface DnsRecord {
+  type: string;
+  name: string;
+  value: string;
+}
+
 interface DomainEntry {
   id: string;
   domain: string;
   verified: boolean;
+  dnsRecords?: DnsRecord[];
 }
 
 // Wrapper with Suspense boundary for useSearchParams
@@ -66,7 +73,20 @@ function SettingsPage() {
   const [domains, setDomains] = useState<DomainEntry[]>([]);
   const [newDomain, setNewDomain] = useState("");
   const [domainLoading, setDomainLoading] = useState(false);
-  const [domainError, setDomainError] = useState("");
+  const [dnsConfigLoading, setDnsConfigLoading] = useState<string | null>(null);
+  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [verifyingDomain, setVerifyingDomain] = useState<string | null>(null);
+
+  // Toast notification
+  const [toast, setToast] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const showToast = (type: "success" | "error" | "info", message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 5000);
+  };
 
   // Detect ?upgraded=true from Stripe redirect
   useEffect(() => {
@@ -132,7 +152,7 @@ function SettingsPage() {
   const handleAddDomain = async () => {
     if (!newDomain || !address) return;
     setDomainLoading(true);
-    setDomainError("");
+    setToast(null);
 
     try {
       // Sign a message to prove wallet ownership
@@ -151,29 +171,70 @@ function SettingsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setDomainError(data.error || "Failed to add domain");
+        showToast("error", data.error || "Failed to add domain");
       } else {
-        setDomains((prev) => [...prev, data.domain]);
+        const newEntry: DomainEntry = {
+          ...data.domain,
+          dnsRecords: data.dnsRecords || [],
+        };
+        setDomains((prev) => [...prev, newEntry]);
         setNewDomain("");
+        // Auto-expand DNS config for the newly added domain
+        setExpandedDomain(data.domain.domain);
+        showToast("success", t("domainAdded"));
       }
     } catch {
-      setDomainError(t("networkError"));
+      showToast("error", t("networkError"));
     } finally {
       setDomainLoading(false);
     }
   };
 
+  const handleFetchDnsConfig = async (domain: string) => {
+    // Toggle: if already expanded, collapse
+    if (expandedDomain === domain) {
+      setExpandedDomain(null);
+      return;
+    }
+
+    // Check if we already have DNS records cached in state
+    const existing = domains.find((d) => d.domain === domain);
+    if (existing?.dnsRecords && existing.dnsRecords.length > 0) {
+      setExpandedDomain(domain);
+      return;
+    }
+
+    // Fetch from API
+    if (!address) return;
+    setDnsConfigLoading(domain);
+    try {
+      const res = await fetch(
+        `/api/domains/config?domain=${encodeURIComponent(domain)}&wallet=${address}`
+      );
+      const data = await res.json();
+      if (res.ok && data.dnsRecords) {
+        setDomains((prev) =>
+          prev.map((d) =>
+            d.domain === domain ? { ...d, dnsRecords: data.dnsRecords } : d
+          )
+        );
+        setExpandedDomain(domain);
+      }
+    } catch {
+      console.error("Failed to fetch DNS config");
+    } finally {
+      setDnsConfigLoading(null);
+    }
+  };
+
   const handleVerifyDomain = async (domain: string) => {
     if (!address) return;
+    setVerifyingDomain(domain);
     try {
-      // Sign a message to prove wallet ownership
-      const message = getDomainAuthMessage("verify", domain);
-      const signature = await signMessageAsync({ message });
-
       const res = await fetch("/api/domains/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain, wallet_address: address, signature }),
+        body: JSON.stringify({ domain, wallet_address: address }),
       });
 
       const data = await res.json();
@@ -181,11 +242,24 @@ function SettingsPage() {
         setDomains((prev) =>
           prev.map((d) => (d.domain === domain ? { ...d, verified: true } : d))
         );
+        setExpandedDomain(null);
+        showToast("success", t("verifySuccess"));
       } else {
-        alert(data.error || "DNS verification failed. Make sure your CNAME is set up.");
+        // Show DNS records returned from server on verification failure
+        if (data.dnsRecords && data.dnsRecords.length > 0) {
+          setDomains((prev) =>
+            prev.map((d) =>
+              d.domain === domain ? { ...d, dnsRecords: data.dnsRecords } : d
+            )
+          );
+          setExpandedDomain(domain);
+        }
+        showToast("error", data.error || t("verifyFailed"));
       }
     } catch {
-      alert("Verification failed");
+      showToast("error", t("networkError"));
+    } finally {
+      setVerifyingDomain(null);
     }
   };
 
@@ -203,7 +277,7 @@ function SettingsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to start checkout");
+        showToast("error", data.error || "Failed to start checkout");
         return;
       }
 
@@ -212,7 +286,7 @@ function SettingsPage() {
         window.location.href = data.url;
       }
     } catch {
-      alert(t("networkError"));
+      showToast("error", t("networkError"));
     } finally {
       setUpgrading(false);
     }
@@ -481,23 +555,92 @@ function SettingsPage() {
             <div>
               {/* Existing domains */}
               {domains.length > 0 && (
-                <div className="space-y-2 mb-4">
+                <div className="space-y-3 mb-4">
                   {domains.map((d) => (
                     <div
                       key={d.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-bg-elevated border border-border-subtle"
+                      className="rounded-xl bg-bg-elevated border border-border-subtle overflow-hidden"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${d.verified ? "bg-green-400" : "bg-yellow-400"}`} />
-                        <span className="text-sm font-mono">{d.domain}</span>
+                      <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${d.verified ? "bg-green-400" : "bg-yellow-400"}`} />
+                          <span className="text-sm font-mono">{d.domain}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!d.verified && (
+                            <>
+                              <button
+                                onClick={() => handleFetchDnsConfig(d.domain)}
+                                disabled={dnsConfigLoading === d.domain}
+                                className="text-xs text-accent-purple hover:text-accent-blue transition-colors"
+                              >
+                                {dnsConfigLoading === d.domain
+                                  ? "..."
+                                  : expandedDomain === d.domain
+                                  ? t("hideDNS")
+                                  : t("showDNS")}
+                              </button>
+                              <button
+                                onClick={() => handleVerifyDomain(d.domain)}
+                                disabled={verifyingDomain === d.domain}
+                                className="text-xs text-accent-cyan hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                              >
+                                {verifyingDomain === d.domain && (
+                                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  </svg>
+                                )}
+                                {verifyingDomain === d.domain ? t("verifying") : t("verifyDNS")}
+                              </button>
+                            </>
+                          )}
+                          {d.verified && (
+                            <span className="text-xs text-green-400">{t("verified")}</span>
+                          )}
+                        </div>
                       </div>
-                      {!d.verified && (
-                        <button
-                          onClick={() => handleVerifyDomain(d.domain)}
-                          className="text-xs text-accent-cyan hover:underline"
-                        >
-                          {t("verifyDNS")}
-                        </button>
+
+                      {/* DNS Records Panel */}
+                      {!d.verified && expandedDomain === d.domain && d.dnsRecords && d.dnsRecords.length > 0 && (
+                        <div className="border-t border-border-subtle bg-bg-primary/50 p-3">
+                          <p className="text-xs text-text-secondary mb-2">
+                            {t("dnsInstructions")}
+                          </p>
+                          <div className="space-y-2">
+                            {d.dnsRecords.map((rec, idx) => (
+                              <div
+                                key={idx}
+                                className="grid grid-cols-[60px_1fr_1fr] gap-2 text-xs font-mono"
+                              >
+                                <span className="px-2 py-1.5 rounded bg-accent-purple/10 text-accent-purple text-center font-semibold">
+                                  {rec.type}
+                                </span>
+                                <span
+                                  className="px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-text-primary truncate cursor-pointer hover:bg-bg-primary transition-colors"
+                                  title={rec.name}
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(rec.name);
+                                  }}
+                                >
+                                  {rec.name}
+                                </span>
+                                <span
+                                  className="px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-accent-cyan truncate cursor-pointer hover:bg-bg-primary transition-colors"
+                                  title={rec.value}
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(rec.value);
+                                  }}
+                                >
+                                  {rec.value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-text-muted mt-2">
+                            {t("clickToCopy")}
+                          </p>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -527,17 +670,72 @@ function SettingsPage() {
                 </button>
               </div>
 
-              {domainError && (
-                <p className="text-xs text-red-400 mt-2">{domainError}</p>
-              )}
-
               <p className="text-xs text-text-muted mt-3">
-                {t("cnameHint")} <code className="text-accent-cyan">cname.vercel-dns.com</code>
+                {t("cnameHintNew")}
               </p>
             </div>
           )}
         </section>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div
+            className={`flex items-start gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-sm max-w-sm ${
+              toast.type === "success"
+                ? "bg-green-500/10 border-green-500/30 shadow-green-500/10"
+                : toast.type === "error"
+                ? "bg-red-500/10 border-red-500/30 shadow-red-500/10"
+                : "bg-accent-blue/10 border-accent-blue/30 shadow-accent-blue/10"
+            }`}
+          >
+            {/* Icon */}
+            {toast.type === "success" && (
+              <svg className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {toast.type === "error" && (
+              <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {toast.type === "info" && (
+              <svg className="w-5 h-5 text-accent-blue flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+
+            {/* Message */}
+            <p className={`text-sm ${
+              toast.type === "success"
+                ? "text-green-400"
+                : toast.type === "error"
+                ? "text-red-400"
+                : "text-accent-blue"
+            }`}>
+              {toast.message}
+            </p>
+
+            {/* Close */}
+            <button
+              onClick={() => setToast(null)}
+              className={`flex-shrink-0 ml-2 transition-colors ${
+                toast.type === "success"
+                  ? "text-green-400/50 hover:text-green-400"
+                  : toast.type === "error"
+                  ? "text-red-400/50 hover:text-red-400"
+                  : "text-accent-blue/50 hover:text-accent-blue"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

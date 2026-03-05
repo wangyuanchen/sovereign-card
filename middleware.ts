@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Middleware to handle custom domain routing on Vercel
  * When a request comes from a custom domain, rewrite it to the corresponding
- * user's profile page via the _custom-domain catch-all route
+ * user's profile page via the custom-domain catch-all route
  */
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
   // domain → user mapping in the database at render time.
   try {
     const rewriteUrl = new URL(
-      `/_custom-domain/${hostname}${url.pathname}`,
+      `/custom-domain/${hostname}${url.pathname}`,
       request.url
     );
 

@@ -5,6 +5,7 @@ import {
   getDomainAuthMessage,
   MAX_DOMAINS_PER_USER,
 } from "@/lib/auth";
+import { fetchVercelDnsRecords, parseDnsRecordsFromVercelResponse } from "@/lib/vercel";
 
 /**
  * POST /api/domains/add
@@ -79,6 +80,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let vercelData: Record<string, unknown> | null = null;
+
     try {
       const vercelRes = await fetch(
         `https://api.vercel.com/v10/projects/${process.env.SC_VERCEL_PROJECT_ID}/domains`,
@@ -92,15 +95,20 @@ export async function POST(request: NextRequest) {
         }
       );
 
+      const resBody = await vercelRes.json().catch(() => null);
+
       if (!vercelRes.ok) {
-        const errData = await vercelRes.json().catch(() => null);
-        const errMsg = errData?.error?.message || "Vercel rejected the domain";
+        const errMsg = resBody?.error?.message || "Vercel rejected the domain";
         console.error("Vercel domain add error:", errMsg);
         return NextResponse.json(
           { error: `Failed to register domain with Vercel: ${errMsg}` },
           { status: 502 }
         );
       }
+
+      // Capture response — it contains verification records
+      vercelData = resBody;
+      console.log("[domains/add] Vercel response:", JSON.stringify(vercelData, null, 2));
     } catch (err) {
       console.error("Vercel API error:", err);
       return NextResponse.json(
@@ -111,7 +119,23 @@ export async function POST(request: NextRequest) {
 
     // ── Only save to DB after Vercel succeeds ─────────────
     const domainRecord = await addCustomDomain(user.id, domain);
-    return NextResponse.json({ domain: domainRecord });
+
+    // ── Extract DNS records from Vercel response ──────────
+    // Prefer records from the POST response (most accurate),
+    // fall back to fetching from GET endpoint
+    let dnsRecords: { type: string; name: string; value: string }[] = [];
+    if (vercelData) {
+      dnsRecords = parseDnsRecordsFromVercelResponse(domain, vercelData);
+    }
+    if (dnsRecords.length === 0) {
+      try {
+        dnsRecords = await fetchVercelDnsRecords(domain);
+      } catch (err) {
+        console.error("Failed to fetch DNS records:", err);
+      }
+    }
+
+    return NextResponse.json({ domain: domainRecord, dnsRecords });
   } catch (error) {
     console.error("POST /api/domains/add error:", error);
     return NextResponse.json(
