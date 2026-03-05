@@ -159,6 +159,16 @@ export async function getDomainsByUser(userId: string) {
   `;
 }
 
+export async function getDomainByName(domain: string) {
+  const sql = getDb();
+  const rows = await sql`
+    SELECT cd.*, u.wallet_address FROM custom_domains cd
+    JOIN users u ON cd.user_id = u.id
+    WHERE cd.domain = ${domain.toLowerCase()}
+  `;
+  return rows[0] ?? null;
+}
+
 export async function getUserByDomain(domain: string) {
   const sql = getDb();
   const rows = await sql`

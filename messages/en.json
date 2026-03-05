@@ -46,6 +46,27 @@
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago"
   },
+  "errors": {
+    "MISSING_PARAMS": "Missing required parameters",
+    "INVALID_DOMAIN_FORMAT": "Invalid domain format. Please enter a valid domain like card.example.com",
+    "INVALID_SIGNATURE": "Wallet signature verification failed",
+    "USER_NOT_FOUND": "User not found. Please visit your profile page first.",
+    "PRO_REQUIRED": "Custom domains require a Pro subscription",
+    "DOMAIN_LIMIT_REACHED": "Domain limit reached. Pro users can add up to 3 domains.",
+    "DOMAIN_ALREADY_TAKEN": "This domain is already in use by another account",
+    "VERCEL_CONFIG_ERROR": "Server configuration error. Please try again later.",
+    "VERCEL_REJECTED": "Domain registration failed. Please check the domain and try again.",
+    "VERCEL_UNREACHABLE": "Unable to connect to domain service. Please try again later.",
+    "DOMAIN_NOT_OWNED": "This domain does not belong to your account",
+    "DOMAIN_NOT_FOUND": "Domain not found",
+    "DNS_NOT_CONFIGURED": "DNS not configured yet. Please set up the required records below.",
+    "STRIPE_NOT_CONFIGURED": "Payment service is temporarily unavailable",
+    "DB_NOT_CONFIGURED": "Service temporarily unavailable",
+    "ALREADY_PRO": "You are already a Pro user!",
+    "CHECKOUT_FAILED": "Failed to start checkout. Please try again.",
+    "INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
+    "UNKNOWN_ERROR": "Something went wrong. Please try again."
+  },
   "settings": {
     "title": "Settings",
     "connectPrompt": "Connect your wallet to access settings",

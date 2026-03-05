@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     if (!domain || !wallet_address) {
       return NextResponse.json(
-        { error: "Missing domain or wallet_address" },
+        { error: "Missing domain or wallet_address", errorCode: "MISSING_PARAMS" },
         { status: 400 }
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // ── Confirm domain belongs to this wallet ─────────────
     const user = await getUserByWallet(wallet_address);
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found", errorCode: "USER_NOT_FOUND" }, { status: 404 });
     }
 
     const userDomains = await getDomainsByUser(user.id);
@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
     );
     if (!ownsThisDomain) {
       return NextResponse.json(
-        { error: "This domain does not belong to your account" },
+        { error: "This domain does not belong to your account", errorCode: "DOMAIN_NOT_OWNED" },
         { status: 403 }
       );
     }
 
     if (!process.env.SC_VERCEL_TOKEN || !process.env.SC_VERCEL_PROJECT_ID) {
       return NextResponse.json(
-        { error: "Vercel API credentials not configured" },
+        { error: "Vercel API credentials not configured", errorCode: "VERCEL_CONFIG_ERROR" },
         { status: 500 }
       );
     }
@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
         {
           verified: false,
           error: "DNS not configured. Please set up the required DNS records shown below.",
+          errorCode: "DNS_NOT_CONFIGURED",
           dnsRecords,
         },
         { status: 400 }
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
     const updated = await verifyCustomDomain(domain, vercelDomainId);
     if (!updated) {
       return NextResponse.json(
-        { error: "Domain not found in database" },
+        { error: "Domain not found in database", errorCode: "DOMAIN_NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("POST /api/domains/verify error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", errorCode: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

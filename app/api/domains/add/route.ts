@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByWallet, addCustomDomain, getDomainsByUser } from "@/lib/db";
+import { getUserByWallet, addCustomDomain, getDomainsByUser, getDomainByName } from "@/lib/db";
 import {
   verifyWalletSignature,
   getDomainAuthMessage,
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!wallet_address || !domain || !signature) {
       return NextResponse.json(
-        { error: "Missing wallet_address, domain, or signature" },
+        { error: "Missing wallet_address, domain, or signature", errorCode: "MISSING_PARAMS" },
         { status: 400 }
       );
     }
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
     if (!domainRegex.test(domain)) {
       return NextResponse.json(
-        { error: "Invalid domain format" },
+        { error: "Invalid domain format", errorCode: "INVALID_DOMAIN_FORMAT" },
         { status: 400 }
       );
     }
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const isValid = await verifyWalletSignature(wallet_address, message, signature);
     if (!isValid) {
       return NextResponse.json(
-        { error: "Invalid signature — wallet ownership not proven" },
+        { error: "Invalid signature — wallet ownership not proven", errorCode: "INVALID_SIGNATURE" },
         { status: 401 }
       );
     }
@@ -51,12 +51,12 @@ export async function POST(request: NextRequest) {
     // ── Check user exists and is Pro ──────────────────────
     const user = await getUserByWallet(wallet_address);
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found", errorCode: "USER_NOT_FOUND" }, { status: 404 });
     }
 
     if (!user.is_pro) {
       return NextResponse.json(
-        { error: "Custom domains require a Pro subscription" },
+        { error: "Custom domains require a Pro subscription", errorCode: "PRO_REQUIRED" },
         { status: 403 }
       );
     }
@@ -67,15 +67,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: `Domain limit reached. Pro users can add up to ${MAX_DOMAINS_PER_USER} domains.`,
+          errorCode: "DOMAIN_LIMIT_REACHED",
         },
         { status: 403 }
+      );
+    }
+
+    // ── Check if domain is already taken by another user ──
+    const existingDomain = await getDomainByName(domain);
+    if (existingDomain) {
+      return NextResponse.json(
+        { error: "This domain is already in use by another account", errorCode: "DOMAIN_ALREADY_TAKEN" },
+        { status: 409 }
       );
     }
 
     // ── Add domain to Vercel project ──────────────────────
     if (!process.env.SC_VERCEL_TOKEN || !process.env.SC_VERCEL_PROJECT_ID) {
       return NextResponse.json(
-        { error: "Vercel API credentials not configured on server" },
+        { error: "Vercel API credentials not configured on server", errorCode: "VERCEL_CONFIG_ERROR" },
         { status: 500 }
       );
     }
@@ -101,7 +111,7 @@ export async function POST(request: NextRequest) {
         const errMsg = resBody?.error?.message || "Vercel rejected the domain";
         console.error("Vercel domain add error:", errMsg);
         return NextResponse.json(
-          { error: `Failed to register domain with Vercel: ${errMsg}` },
+          { error: `Failed to register domain with Vercel: ${errMsg}`, errorCode: "VERCEL_REJECTED" },
           { status: 502 }
         );
       }
@@ -112,7 +122,7 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error("Vercel API error:", err);
       return NextResponse.json(
-        { error: "Could not reach Vercel API" },
+        { error: "Could not reach Vercel API", errorCode: "VERCEL_UNREACHABLE" },
         { status: 502 }
       );
     }
@@ -137,7 +147,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("POST /api/domains/add error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", errorCode: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

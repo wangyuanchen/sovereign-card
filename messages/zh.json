@@ -46,6 +46,27 @@
     "hoursAgo": "{count} 小时前",
     "daysAgo": "{count} 天前"
   },
+  "errors": {
+    "MISSING_PARAMS": "缺少必要参数",
+    "INVALID_DOMAIN_FORMAT": "域名格式无效，请输入正确的域名，例如 card.example.com",
+    "INVALID_SIGNATURE": "钱包签名验证失败",
+    "USER_NOT_FOUND": "用户未找到，请先访问个人资料页面。",
+    "PRO_REQUIRED": "自定义域名需要 Pro 订阅",
+    "DOMAIN_LIMIT_REACHED": "域名数量已达上限，Pro 用户最多可添加 3 个域名。",
+    "DOMAIN_ALREADY_TAKEN": "该域名已被其他账户使用",
+    "VERCEL_CONFIG_ERROR": "服务器配置错误，请稍后重试。",
+    "VERCEL_REJECTED": "域名注册失败，请检查域名后重试。",
+    "VERCEL_UNREACHABLE": "无法连接域名服务，请稍后重试。",
+    "DOMAIN_NOT_OWNED": "该域名不属于你的账户",
+    "DOMAIN_NOT_FOUND": "域名未找到",
+    "DNS_NOT_CONFIGURED": "DNS 尚未配置，请按下方记录进行设置。",
+    "STRIPE_NOT_CONFIGURED": "支付服务暂时不可用",
+    "DB_NOT_CONFIGURED": "服务暂时不可用",
+    "ALREADY_PRO": "你已经是 Pro 用户了！",
+    "CHECKOUT_FAILED": "无法启动支付，请重试。",
+    "INTERNAL_ERROR": "发生了意外错误，请重试。",
+    "UNKNOWN_ERROR": "出了点问题，请重试。"
+  },
   "settings": {
     "title": "设置",
     "connectPrompt": "连接钱包以访问设置",

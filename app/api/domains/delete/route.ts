@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (!wallet_address || !domain || !signature) {
       return NextResponse.json(
-        { error: "Missing wallet_address, domain, or signature" },
+        { error: "Missing wallet_address, domain, or signature", errorCode: "MISSING_PARAMS" },
         { status: 400 }
       );
     }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const valid = await verifyWalletSignature(wallet_address, message, signature);
     if (!valid) {
       return NextResponse.json(
-        { error: "Invalid signature" },
+        { error: "Invalid signature", errorCode: "INVALID_SIGNATURE" },
         { status: 401 }
       );
     }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // ── Check user exists and owns this domain ────────────
     const user = await getUserByWallet(wallet_address);
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found", errorCode: "USER_NOT_FOUND" }, { status: 404 });
     }
 
     const userDomains = await getDomainsByUser(user.id);
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     );
     if (!ownsThisDomain) {
       return NextResponse.json(
-        { error: "This domain does not belong to your account" },
+        { error: "This domain does not belong to your account", errorCode: "DOMAIN_NOT_OWNED" },
         { status: 403 }
       );
     }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const deleted = await deleteCustomDomain(user.id, domain);
     if (!deleted) {
       return NextResponse.json(
-        { error: "Domain not found in database" },
+        { error: "Domain not found in database", errorCode: "DOMAIN_NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("POST /api/domains/delete error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", errorCode: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }

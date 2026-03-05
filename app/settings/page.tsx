@@ -52,6 +52,19 @@ function SettingsPage() {
   const searchParams = useSearchParams();
   const t = useTranslations("settings");
   const tc = useTranslations("common");
+  const te = useTranslations("errors");
+
+  /** Map API errorCode to translated message, with fallback */
+  const getErrorMessage = (data: { errorCode?: string; error?: string }) => {
+    if (data.errorCode) {
+      try {
+        return te(data.errorCode as Parameters<typeof te>[0]);
+      } catch {
+        // errorCode not found in translations
+      }
+    }
+    return data.error || te("UNKNOWN_ERROR");
+  };
 
   /**
    * Construct the same deterministic message that the server expects.
@@ -177,7 +190,7 @@ function SettingsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        showToast("error", data.error || "Failed to add domain");
+        showToast("error", getErrorMessage(data));
       } else {
         const newEntry: DomainEntry = {
           ...data.domain,
@@ -190,7 +203,7 @@ function SettingsPage() {
         showToast("success", t("domainAdded"));
       }
     } catch {
-      showToast("error", t("networkError"));
+      showToast("error", te("UNKNOWN_ERROR"));
     } finally {
       setDomainLoading(false);
     }
@@ -258,11 +271,11 @@ function SettingsPage() {
         if (expandedDomain === domain) setExpandedDomain(null);
         showToast("success", t("deleteSuccess").replace("{domain}", domain));
       } else {
-        showToast("error", data.error || "Failed to delete domain");
+        showToast("error", getErrorMessage(data));
       }
     } catch (err) {
       console.error("Delete domain error:", err);
-      showToast("error", t("networkError"));
+      showToast("error", te("UNKNOWN_ERROR"));
     } finally {
       setDeletingDomain(null);
     }
@@ -295,10 +308,10 @@ function SettingsPage() {
           );
           setExpandedDomain(domain);
         }
-        showToast("error", data.error || t("verifyFailed"));
+        showToast("error", getErrorMessage(data));
       }
     } catch {
-      showToast("error", t("networkError"));
+      showToast("error", te("UNKNOWN_ERROR"));
     } finally {
       setVerifyingDomain(null);
     }
@@ -318,7 +331,7 @@ function SettingsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast("error", data.error || "Failed to start checkout");
+        showToast("error", getErrorMessage(data));
         return;
       }
 
@@ -327,7 +340,7 @@ function SettingsPage() {
         window.location.href = data.url;
       }
     } catch {
-      showToast("error", t("networkError"));
+      showToast("error", te("UNKNOWN_ERROR"));
     } finally {
       setUpgrading(false);
     }

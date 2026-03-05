@@ -13,14 +13,14 @@ export async function POST(request: NextRequest) {
   try {
     if (!isStripeConfigured()) {
       return NextResponse.json(
-        { error: "Stripe is not configured on the server" },
+        { error: "Stripe is not configured on the server", errorCode: "STRIPE_NOT_CONFIGURED" },
         { status: 503 }
       );
     }
 
     if (!isDatabaseConfigured()) {
       return NextResponse.json(
-        { error: "Database not configured" },
+        { error: "Database not configured", errorCode: "DB_NOT_CONFIGURED" },
         { status: 503 }
       );
     }
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!wallet_address) {
       return NextResponse.json(
-        { error: "wallet_address is required" },
+        { error: "wallet_address is required", errorCode: "MISSING_PARAMS" },
         { status: 400 }
       );
     }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const user = await getUserByWallet(wallet_address);
     if (!user) {
       return NextResponse.json(
-        { error: "User not found. Visit your profile first to register." },
+        { error: "User not found. Visit your profile first to register.", errorCode: "USER_NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Already Pro — no need to pay again
     if (user.is_pro) {
       return NextResponse.json(
-        { error: "You are already a Pro user!" },
+        { error: "You are already a Pro user!", errorCode: "ALREADY_PRO" },
         { status: 400 }
       );
     }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (!priceId) {
       return NextResponse.json(
-        { error: "STRIPE_PRICE_ID not configured on server" },
+        { error: "STRIPE_PRICE_ID not configured on server", errorCode: "STRIPE_NOT_CONFIGURED" },
         { status: 503 }
       );
     }
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("POST /api/checkout error:", error);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: "Failed to create checkout session", errorCode: "CHECKOUT_FAILED" },
       { status: 500 }
     );
   }
