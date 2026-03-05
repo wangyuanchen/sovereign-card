@@ -665,7 +665,7 @@ function SettingsPage() {
                                   {rec.type}
                                 </span>
                                 <span
-                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-text-primary truncate cursor-pointer hover:bg-bg-primary transition-colors"
+                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-text-primary truncate cursor-pointer hover:bg-bg-primary transition-colors overflow-visible"
                                   title={rec.name}
                                   onClick={() => {
                                     const id = `${d.domain}-${idx}-name`;
@@ -674,15 +674,15 @@ function SettingsPage() {
                                     setTimeout(() => setCopiedId((prev) => prev === id ? null : prev), 1500);
                                   }}
                                 >
-                                  {rec.name}
+                                  <span className="block truncate">{rec.name}</span>
                                   {copiedId === `${d.domain}-${idx}-name` && (
-                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg animate-in fade-in duration-150">
+                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg pointer-events-none animate-in fade-in duration-150">
                                       {t("copied")}
                                     </span>
                                   )}
                                 </span>
                                 <span
-                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-accent-cyan truncate cursor-pointer hover:bg-bg-primary transition-colors"
+                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-accent-cyan truncate cursor-pointer hover:bg-bg-primary transition-colors overflow-visible"
                                   title={rec.value}
                                   onClick={() => {
                                     const id = `${d.domain}-${idx}-value`;
@@ -691,9 +691,9 @@ function SettingsPage() {
                                     setTimeout(() => setCopiedId((prev) => prev === id ? null : prev), 1500);
                                   }}
                                 >
-                                  {rec.value}
+                                  <span className="block truncate">{rec.value}</span>
                                   {copiedId === `${d.domain}-${idx}-value` && (
-                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg animate-in fade-in duration-150">
+                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg pointer-events-none animate-in fade-in duration-150">
                                       {t("copied")}
                                     </span>
                                   )}
