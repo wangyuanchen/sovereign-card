@@ -77,6 +77,7 @@ function SettingsPage() {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [verifyingDomain, setVerifyingDomain] = useState<string | null>(null);
   const [deletingDomain, setDeletingDomain] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     domain: string;
     visible: boolean;
@@ -664,24 +665,38 @@ function SettingsPage() {
                                   {rec.type}
                                 </span>
                                 <span
-                                  className="px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-text-primary truncate cursor-pointer hover:bg-bg-primary transition-colors"
+                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-text-primary truncate cursor-pointer hover:bg-bg-primary transition-colors"
                                   title={rec.name}
                                   onClick={() => {
+                                    const id = `${d.domain}-${idx}-name`;
                                     navigator.clipboard.writeText(rec.name);
-                                    showToast("info", t("copied"));
+                                    setCopiedId(id);
+                                    setTimeout(() => setCopiedId((prev) => prev === id ? null : prev), 1500);
                                   }}
                                 >
                                   {rec.name}
+                                  {copiedId === `${d.domain}-${idx}-name` && (
+                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg animate-in fade-in duration-150">
+                                      {t("copied")}
+                                    </span>
+                                  )}
                                 </span>
                                 <span
-                                  className="px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-accent-cyan truncate cursor-pointer hover:bg-bg-primary transition-colors"
+                                  className="relative px-2 py-1.5 rounded bg-bg-elevated border border-border-subtle text-accent-cyan truncate cursor-pointer hover:bg-bg-primary transition-colors"
                                   title={rec.value}
                                   onClick={() => {
+                                    const id = `${d.domain}-${idx}-value`;
                                     navigator.clipboard.writeText(rec.value);
-                                    showToast("info", t("copied"));
+                                    setCopiedId(id);
+                                    setTimeout(() => setCopiedId((prev) => prev === id ? null : prev), 1500);
                                   }}
                                 >
                                   {rec.value}
+                                  {copiedId === `${d.domain}-${idx}-value` && (
+                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-green-500/90 text-white text-[10px] whitespace-nowrap shadow-lg animate-in fade-in duration-150">
+                                      {t("copied")}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                             ))}
