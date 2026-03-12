@@ -43,10 +43,6 @@ function getStoredLocale(): Locale {
   if (typeof window === "undefined") return "en";
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "zh" || stored === "en") return stored;
-
-  // Auto-detect from browser language
-  const browserLang = navigator.language.toLowerCase();
-  if (browserLang.startsWith("zh")) return "zh";
   return "en";
 }
 

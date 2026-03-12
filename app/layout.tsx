@@ -16,11 +16,26 @@ export const metadata: Metadata = {
     description:
       "Generate your on-chain identity card. Showcase your NFTs, tokens, and Web3 presence.",
     type: "website",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "Sovereign Card",
     description: "Your Web3 Identity, One Card.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
+  other: {
+    "content-language": "en",
   },
 };
 
