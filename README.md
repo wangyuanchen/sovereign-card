@@ -2,6 +2,8 @@
 
 > 🔗 Connect wallet → generate a shareable on-chain identity card with your NFTs, tokens, and activity.
 
+<a href="https://www.producthunt.com/products/sovereign-card-web3-identity-card?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-sovereign-card-web3-identity-card" target="_blank" rel="noopener noreferrer"><img alt="Sovereign Card — Web3 Identity Card - The business card of the on-chain era. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1101371&amp;theme=light&amp;t=1773985943398"></a>
+
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-green)
